@@ -1,0 +1,71 @@
+Reverse Engineering Intro: Task
+Gunner Miller
+HackUTK 2024 - Spring
+3/25/2024
+Introduction
+Reverse engineering in the context of computer science refers to the process of
+interpreting the designed functionality of a high level program via its input, output, signals,
+errors, executable, and other relevant metadata. This is a useful skill set for programmers, cyber
+security experts, analysts, etc. In this project we will be attempting to reverse engineer a simple c
+program given only one source file and a compiled executable. These files (task and task.c) will
+provide a limited look into the functionality of the task program. By examining the task.c file
+we’ll see that there are three phases in its execution each requiring a unique piece of user input
+via stdin or through a file. To determine what input is valid we’ll have to look into the
+executable. Unfortunately, this program was compiled without debugging symbols meaning
+you’ll be forced to read the assembly interpretation of the file. Thankfully there are a number of
+tools available to help you do this.
+Part One: Visualize the Executable
+The first step to understanding this program is to read the parts unavailable to us via
+source code. One such tool to help with this is called objdump. objdump has many options which
+allows for interpreting executable files. Try running objdump -d task and you’ll be greeted with a
+considerably long but useful output of the executable sections of the task executable. Feel free to
+search through the output and look for identifiable things from task.c, such as the main function.
+Next we can use the tool strings. This tool will list all readable ascii strings contained within the
+executable by running strings task. Refer back to this tool after finding the phase one key and
+you’ll see it buried in its output. You can filter this directly to confirm its presence in the
+executable by running strings task | grep <phase 1 key> and you’ll see <phase 1 key> is indeed
+present. Finally, our most useful tool in this project will be gdb. Using gdb we can both visualize
+and execute our program, as well as its memory, stack, etc. Attached alongside this writeup will
+be a cheat sheet for gdb. One of the more useful instructions for gdb will be layout asm. You’ll
+see why it’s so handy once you give it a try. First run, gdb task, then run layout asm within gdb
+and you’ll be greeted with a very handy visual. Keep in mind that sometimes this display can
+become ‘misaligned’ by your program printing to stdout or stderr. To rectify this try scrolling
+up/down with the arrows or mouse wheel (if enabled) until the garbled output is no longer visible
+in the display and then scroll back to it. This will ‘re-render’ the text and ensure it’s displayed
+correctly.
+Part Two: Understanding the Executable
+Now that we can see the assembly we’ll need to attempt to understand it. If at this stage you’re
+uncomfortable with x86 assembly this would be a good time to look at some reference material for a
+quick intro. Consider looking at the following resource. It’s worth noting that there are two distinct
+‘versions’ of assembly syntax: at&t and intel. By default gdb will use at&t syntax, it can be set to intel via
+the set disassembly-flavor intel command from within gdb. Note this operation is temporary, it can be
+made permanent though, check here for that.
+Ok, enough talking let’s look at some code. Below is a snippet of the disassembled function
+phase_1 in its entirety. Notice it’s not very long, that’s a good start. To get here run gdb task and then
+layout asm, finally
+scroll to where you
+can see this output.
+Notice we have three
+columns of output.
+On the far left we see
+a column of six digit
+long hexadecimal
+addresses. To the
+right of that we see a
+column of labels in
+the form of
+<phase_1+x>. Next is a column of x86 instructions and their operands if they have any. Now at this point
+we could delve into what each instruction does and what this function does but that’s the whole point of
+the challenge. However, I will leave you with this. Notice at <phase_1+29> we’re calling the strcmp c
+function. Below that at <phase_1+36> we’re jumping in the event that the result of the instruction at
+<phase_1+34> test %eax %eax has set the zero flag ZF. This would seem to suggest we’re branching to
+one of the offsets of <phase_1+58> or <phase_1+38> based on the result of string comparison. Lastly, I’d
+like to point you towards the comment on the right hand side of the above screen shot. Notice it says #
+0x602060 <phase1_key>, this seems to suggest that the phase one key might be at location 0x602060. We
+could probably look at that value by running print (char *) *0x602060. Print simply prints, (char *) is
+‘casting’ a value to the type char * like in c. And *0x602060 is ‘dereferencing’ that address. You’ve been
+able to follow up to this point you should now have access to the first phase's key, if not you’re very
+close.
+Conclusion
+Be sure to reference the provided sites as well as the provided cheat sheets. Also feel free to reach
+out for help from people in the discord. I’m more than happy to give as much help as I can. Good Luck!
